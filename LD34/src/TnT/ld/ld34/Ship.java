@@ -26,11 +26,31 @@ public class Ship {
 	}
 	
 	public void land(Body b) {
-		System.out.println("hit planet!");
 		landAngle = Math.atan2(y-b.y, x-b.x)-b.angle;
 		x = b.x + Math.cos(b.angle+landAngle)*(b.hitRadius+landRadius);
 		y = b.y + Math.sin(b.angle+landAngle)*(b.hitRadius+landRadius);
 		landed = b;
+	}
+	
+	public void launch(double speed) {
+		double dx = x-landed.x;
+		double dy = y-landed.y;
+		double mag = Math.hypot(dx, dy);
+		vx = dx * speed / mag;
+		vy = dy * speed / mag;
+		landed = null;
+	}
+	
+	public void approachExit(Exit exit) {
+		double move = Math.hypot(vx, vy) * LD34.dt;
+		double dist = Math.hypot(x-exit.x, exit.y);
+		if (dist < move) {
+			x = exit.x;
+			y = exit.y;
+		} else {
+			x += (exit.x-x)*move/dist;
+			y += (exit.y-y)*move/dist;
+		}
 	}
 	
 	public void paint(Graphics2D g) {

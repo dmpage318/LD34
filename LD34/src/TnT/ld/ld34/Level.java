@@ -18,6 +18,7 @@ public class Level {
 	public boolean teleported; //used for predicting path
 	private int frame = 0; //physics time frame for drawing path
 	public Exit exit;
+	public static double launchSpeed = 800;
 	
 	public void paint(Graphics2D g) {
 		double tx = 0, ty = 0;
@@ -41,8 +42,10 @@ public class Level {
 		Stroke s = g.getStroke();
 		g.setStroke(new BasicStroke(2));
 		g.setColor(Color.white);
+		ArrayList<Path2D.Double> paths = this.paths;
 		for (int i = 0; i < paths.size(); i++) {
-			g.setColor(new Color(255, 255, 255, (int)(255*(1-(double)i/paths.size()))));
+			int alpha = Math.max(0, (int)(255*(1-(double)i/(PROJECT_TIME*100d/6))));
+			g.setColor(new Color(255, 255, 255, alpha));
 			g.draw(paths.get(i));
 		}
 		g.setStroke(s);
@@ -57,7 +60,10 @@ public class Level {
 		g.drawOval(-SIZE/2, -SIZE/2, SIZE, SIZE);
 		g.setStroke(s);
 	}
-	
+
+	public double power = 1;
+	public double dpower = .5;
+	public boolean lastLaunch = false;
 	public void physics(boolean ghostMode) {
 		teleported = false;
 		for (int i = 0; i < bodies.size(); i++) {
@@ -74,19 +80,41 @@ public class Level {
 				}
 			}
 		}
+		boolean launch = LD34.launch;
+		if (LD34.windup && ship.hasLanded()) {
+			power += dpower * LD34.dt;
+			if (power>1) {
+				power = 2-power;
+				dpower *= -1;
+			} else if (power<0) {
+				power *= -1;
+				dpower *= -1;
+			}
+		}
 		if (!win && !dead) {
+			if (!ghostMode && ship.hasLanded() && launch && !lastLaunch) {
+				ship.launch(getLaunchSpeed());
+			}
 			ship.physics();
 			if (!ship.hasLanded()) {
 				exit.doGravity(ship);
 				if (exit.collides(ship)) win = true;
 			}
 		}
+		if (win) ship.approachExit(exit);
 		if (Math.hypot(ship.x, ship.y) > SIZE/2-ship.hitRadius) dead = true;
 		if (ignore!=null && !ignore.collides(ship)) ignore = null;
-		frame++;
-		frame %= 6;
+		if (!ship.hasLanded() && !dead && !win) {
+			frame++;
+			frame %= 6;
+		}
 		if (!win && !dead && !ghostMode) plotCourse();
 		else paths.clear();
+		lastLaunch = launch;
+	}
+	
+	public double getLaunchSpeed() {
+		return Math.pow(power, .2) * launchSpeed;
 	}
 	
 	ArrayList<Path2D.Double> paths = new ArrayList<Path2D.Double>();
@@ -132,6 +160,11 @@ public class Level {
 		l.ship.y = ship.y;
 		l.ship.vx = ship.vx;
 		l.ship.vy = ship.vy;
+		if (ship.hasLanded()) {
+			l.ship.landed = ship.landed;
+			l.ship.launch(getLaunchSpeed());
+			l.ship.physics();
+		}
 		return l;
 	}
 	

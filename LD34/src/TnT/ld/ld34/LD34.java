@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.ComponentEvent;
+import java.awt.event.KeyEvent;
 import java.awt.image.VolatileImage;
 
 import javax.swing.JFrame;
@@ -93,8 +94,8 @@ public class LD34 extends InputAdapter {
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 		panel.addComponentListener(this);
-		panel.setFocusable(true);
-		if (!panel.hasFocus()) panel.grabFocus();
+		frame.addKeyListener(this);
+		frame.setFocusable(true);
 	}
 	
 	public void graphics() {
@@ -148,6 +149,24 @@ public class LD34 extends InputAdapter {
 		level.addBody(a);
 		level.addBody(b);
 		level.exit = new Exit(800, 100);
+		level.ship.land(level.bodies.get(0));
+	}
+	
+	public static boolean windup = false;
+	public static boolean launch = false;
+	public void keyPressed(KeyEvent e) {
+		System.out.println("key pressed");
+		switch (e.getKeyCode()) {
+		case KeyEvent.VK_SHIFT: windup = true; break;
+		case KeyEvent.VK_SPACE: launch = true; break;
+		}
+	}
+	
+	public void keyReleased(KeyEvent e) {
+		switch (e.getKeyCode()) {
+		case KeyEvent.VK_SHIFT: windup = false; break;
+		case KeyEvent.VK_SPACE: launch = false; break;
+		}
 	}
 	
 	public void componentResized(ComponentEvent e) {

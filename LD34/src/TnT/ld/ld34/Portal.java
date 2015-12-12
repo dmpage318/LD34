@@ -10,7 +10,7 @@ public class Portal extends Body {
 		this.x = x;
 		this.y = y;
 		hitRadius = 50;
-		localGravRadius = 100;
+		localGravRadius = 00;
 	}
 	
 	public void link(Portal p) {
