@@ -6,6 +6,9 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+import java.awt.geom.Point2D;
 import java.awt.image.VolatileImage;
 
 import javax.swing.JFrame;
@@ -14,7 +17,7 @@ import javax.swing.JPanel;
 public class LD34 extends InputAdapter {
 	public static LD34 theLD;
 	public static String GAME_NAME = "LD34";
-	public JPanel panel;
+	public static JPanel panel;
 	public JFrame frame;
 	public Thread graphics, physics;
 	public static long GRAPHICS_DELAY = 16;
@@ -23,12 +26,15 @@ public class LD34 extends InputAdapter {
 	public static long graphicsTime, physicsTime;
 	public VolatileImage img;
 	public static final int GAME = 0;
-	public static int gameState = GAME;
+	public static final int EDITOR = -1;
+//	public static int gameState = GAME;
+	public static int gameState = EDITOR;
 	public static double dt = PHYSICS_DELAY / 1000d;
 	public Level level;
 	public static int assumedWidth = 1920;
 	public static int assumedHeight = 1080;
 	public static double gscale;
+	public LevelEditor edit;
 	
 	public static void main(String[] args) {
 		theLD = new LD34();
@@ -44,7 +50,12 @@ public class LD34 extends InputAdapter {
 				long time = System.currentTimeMillis();
 				while (true) {
 					start = System.currentTimeMillis();
-					graphics();
+					try{
+						graphics();
+					}catch(Exception e){
+						System.out.println("GRAPHICS ERROR!");
+						e.printStackTrace();
+					}
 					frames++;
 					if (System.currentTimeMillis()-time>1000) {
 						fps = frames;
@@ -78,7 +89,10 @@ public class LD34 extends InputAdapter {
 		
 		//TODO actual starting game stuff
 		gameState = GAME;
-		makeLevel();
+//		loadLevel("default");
+//		makeLevel();
+//		Loader.saveLevel(level, "default");
+		launchEditor();
 		
 		graphics.start();
 		physics.start();
@@ -95,6 +109,9 @@ public class LD34 extends InputAdapter {
 		frame.setVisible(true);
 		panel.addComponentListener(this);
 		frame.addKeyListener(this);
+		panel.addMouseListener(this);
+		panel.addMouseMotionListener(this);
+		panel.addMouseWheelListener(this);
 		frame.setFocusable(true);
 	}
 	
@@ -107,6 +124,7 @@ public class LD34 extends InputAdapter {
 		
 		switch (gameState) {
 		case GAME: gameGraphics(g); break;
+		case EDITOR: edit.paint(g); break;
 		}
 		
 		g.setColor(Color.red);
@@ -121,45 +139,58 @@ public class LD34 extends InputAdapter {
 	}
 	
 	public void gameGraphics(Graphics2D g) {
+		gameGraphics(level,g);
+	}
+	public void gameGraphics(Level l,Graphics2D g){
 		g.translate(panel.getWidth()/2, panel.getHeight()/2);
 		gscale = Math.min((double)panel.getWidth()/assumedWidth, (double)panel.getHeight()/assumedHeight);
 		g.scale(gscale, gscale);
 		
-		level.paint(g);
+		l.paint(g);
 		
 		g.scale(1/gscale, 1/gscale);
 		g.translate(-panel.getWidth()/2, -panel.getHeight()/2);
 	}
-	
 	public void physics() {
-		if (level != null) level.physics(false);
+		if (gameState==GAME) level.physics();
+		if (gameState==EDITOR) edit.physics();
 	}
 	
 	public void makeLevel() {
 		//TODO load level from file
 		level = new Level();
 		level.ship.x = 200;
-//		level.ship.vy = 680;//511.9;
-//		level.bodies.add(new Planet(0, 0, 100, 1));
-		level.bodies.add(new Planet(-600, 0, 100, -1));
+		level.ship.vy = /*680;*/511.9;
+		level.bodies.add(new Planet(0, 0, 100, .5));
+		level.bodies.add(new Planet(-600, 0, 100, -.5));
 		level.ship.vy = 200;
-		Portal a = new Portal(70, 200);
+		Portal a = new Portal(70, 220);
 		Portal b = new Portal(330, -200);
 		a.link(b);
 		level.addBody(a);
 		level.addBody(b);
 		level.exit = new Exit(800, 100);
-		level.ship.land(level.bodies.get(0));
+		level.setStart(level.bodies.get(0));
+	}
+	
+	public void launchEditor() {
+		edit = new LevelEditor();
+		gameState = EDITOR;
+	}
+	
+	public void loadLevel(String name) {
+		level = Loader.loadLevel(name);
+		gameState = GAME;
 	}
 	
 	public static boolean windup = false;
 	public static boolean launch = false;
 	public void keyPressed(KeyEvent e) {
-		System.out.println("key pressed");
 		switch (e.getKeyCode()) {
 		case KeyEvent.VK_SHIFT: windup = true; break;
 		case KeyEvent.VK_SPACE: launch = true; break;
 		}
+		if (gameState==EDITOR) edit.keyPressed(e);
 	}
 	
 	public void keyReleased(KeyEvent e) {
@@ -167,6 +198,7 @@ public class LD34 extends InputAdapter {
 		case KeyEvent.VK_SHIFT: windup = false; break;
 		case KeyEvent.VK_SPACE: launch = false; break;
 		}
+		if (gameState==EDITOR) edit.keyReleased(e);
 	}
 	
 	public void componentResized(ComponentEvent e) {
@@ -174,11 +206,48 @@ public class LD34 extends InputAdapter {
 	}
 	
 	public static int getWidth() {
-		return LD34.theLD.panel.getWidth();
+		return LD34.panel.getWidth();
 	}
 	
 	public static int getHeight() {
-		return LD34.theLD.panel.getHeight();
+		return LD34.panel.getHeight();
+	}
+	
+	public static void doAnimation() {
+		
+	}
+	
+	public void mousePressed(MouseEvent e) {
+		if (gameState==EDITOR) edit.mousePressed(e);
+	}
+	
+	public void mouseReleased(MouseEvent e) {
+		if (gameState==EDITOR) edit.mouseReleased(e);
+	}
+	
+	public void mouseDragged(MouseEvent e) {
+		if (gameState==EDITOR) edit.mouseDragged(e);
+	}
+	
+	public void mouseMoved(MouseEvent e) {
+		if (gameState==EDITOR) edit.mouseMoved(e);
+	}
+	
+	public void mouseWheelMoved(MouseWheelEvent e) {
+		if (gameState==EDITOR) edit.mouseWheelMoved(e);
+	}
+
+	public static void scaleTo(Graphics2D g) {
+		g.translate(panel.getWidth()/2, panel.getHeight()/2);
+		gscale = Math.min((double)panel.getWidth()/assumedWidth, (double)panel.getHeight()/assumedHeight);
+		g.scale(gscale, gscale);
+	}
+	public static Point2D.Double scalePointTo(Point2D.Double p){
+		return new Point2D.Double((p.x-getWidth()/2)/gscale,(p.y-getHeight()/2)/gscale);
+	}
+	public static void scaleFrom(Graphics2D g) {
+		g.scale(1/gscale, 1/gscale);
+		g.translate(-panel.getWidth()/2, -panel.getHeight()/2);
 	}
 	
 }

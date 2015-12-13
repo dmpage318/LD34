@@ -1,7 +1,11 @@
 package TnT.ld.ld34;
 
-public class Planet extends Body {
+import java.awt.geom.Path2D;
 
+public class Planet extends Body {
+	public Path2D.Double path;
+	public boolean fixed=true;
+	public static final double RADIUS=100,OMEGA=.5;
 	public Planet(double x, double y, double radius, double omega) {
 		this.x = x;
 		this.y = y;
@@ -9,7 +13,9 @@ public class Planet extends Body {
 		this.omega = omega;
 		mass = 10;
 	}
-
+	public Planet(double x, double y){
+		this(x,y,RADIUS,OMEGA);
+	}
 	public boolean canLand() {
 		return true;
 	}
@@ -27,6 +33,8 @@ public class Planet extends Body {
 	}
 	
 	public Planet clone() {
-		return new Planet(x, y, hitRadius, omega);
+		Planet p =  new Planet(x, y, hitRadius, omega);
+		p.mass = mass;
+		return p;
 	}
 }

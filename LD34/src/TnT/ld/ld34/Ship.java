@@ -4,7 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 
 public class Ship {
-	public double hitRadius = 35;
+	public static double hitRadius = 35;
 	public double landRadius = 35;
 	public Body landed;
 	public double landAngle;

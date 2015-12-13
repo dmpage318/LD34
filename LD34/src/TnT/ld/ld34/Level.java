@@ -17,18 +17,23 @@ public class Level {
 	public Portal ignore = null;
 	public boolean teleported; //used for predicting path
 	private int frame = 0; //physics time frame for drawing path
-	public Exit exit;
+	public Exit exit = new Exit(0, 0);
 	public static double launchSpeed = 800;
+	public String next="";
+	public Body startPlanet;
+	public boolean ghostMode;
+	public boolean editMode = false;
+	public boolean lastLevel = false;
 	
 	public void paint(Graphics2D g) {
 		double tx = 0, ty = 0;
-		double xbound = (LD34.getWidth()/2-150)/LD34.gscale;
-		double ybound = (LD34.getHeight()/2-150)/LD34.gscale;
+		double xbound = (LD34.getWidth()/2-75)/LD34.gscale;
+		double ybound = (LD34.getHeight()/2-75)/LD34.gscale;
 		if (ship.x>xbound) tx = xbound-ship.x;
 		if (ship.x<-xbound) tx = -xbound-ship.x;
 		if (ship.y>ybound) ty = ybound-ship.y;
 		if (ship.y<-ybound) ty = -ybound-ship.y;
-		g.translate(tx, ty);
+		if (!editMode) g.translate(tx, ty);
 		
 		drawBackground(g);
 		
@@ -50,7 +55,7 @@ public class Level {
 		}
 		g.setStroke(s);
 		
-		g.translate(-tx, -ty);
+		if (!editMode) g.translate(-tx, -ty);
 	}
 	
 	public void drawBackground(Graphics2D g) {
@@ -60,17 +65,28 @@ public class Level {
 		g.drawOval(-SIZE/2, -SIZE/2, SIZE, SIZE);
 		g.setStroke(s);
 	}
+	
+	public void setStart(Body b) {
+		ship.land(b);
+		startPlanet = b;
+	}
+	
+	public void reset() {
+		ship.land(startPlanet);
+		dead = false;
+		win = false;
+	}
 
 	public double power = 1;
 	public double dpower = .5;
 	public boolean lastLaunch = false;
-	public void physics(boolean ghostMode) {
+	public void physics() {
 		teleported = false;
 		for (int i = 0; i < bodies.size(); i++) {
 			Body b = bodies.get(i);
 			b.physics();
-			if (!win && !dead && !ship.hasLanded()) b.doGravity(ship);
-			if (!win && !dead && b.collides(ship)) {
+			if (!editMode && !win && !dead && !ship.hasLanded()) b.doGravity(ship);
+			if (!editMode && !win && !dead && b.collides(ship)) {
 				if (b.canKill()) dead = true;
 				else if (b.canLand() && !ship.hasLanded()) ship.land(b);
 				else if (b instanceof Portal && b!=ignore){
@@ -92,17 +108,20 @@ public class Level {
 			}
 		}
 		if (!win && !dead) {
-			if (!ghostMode && ship.hasLanded() && launch && !lastLaunch) {
+			if (!editMode && !ghostMode && ship.hasLanded() && launch && !lastLaunch) {
 				ship.launch(getLaunchSpeed());
 			}
 			ship.physics();
-			if (!ship.hasLanded()) {
+			if (!editMode && !ship.hasLanded()) {
 				exit.doGravity(ship);
 				if (exit.collides(ship)) win = true;
 			}
 		}
-		if (win) ship.approachExit(exit);
-		if (Math.hypot(ship.x, ship.y) > SIZE/2-ship.hitRadius) dead = true;
+		if (win) {
+			if (lastLevel && !ship.hasLanded()) ship.land(exit);
+			else ship.approachExit(exit);
+		}
+		if (!editMode && Math.hypot(ship.x, ship.y) > SIZE/2-Ship.hitRadius) die();
 		if (ignore!=null && !ignore.collides(ship)) ignore = null;
 		if (!ship.hasLanded() && !dead && !win) {
 			frame++;
@@ -113,20 +132,25 @@ public class Level {
 		lastLaunch = launch;
 	}
 	
+	public void die() {
+		dead = true;
+		if (!ghostMode) reset();
+	}
+	
 	public double getLaunchSpeed() {
 		return Math.pow(power, .2) * launchSpeed;
 	}
 	
 	ArrayList<Path2D.Double> paths = new ArrayList<Path2D.Double>();
 	public void plotCourse() {
-		Level l = clone();
+		Level l = makeGhost();
 		ArrayList<Path2D.Double> paths = new ArrayList<Path2D.Double>();
 		Path2D.Double path = new Path2D.Double();
 		paths.add(path);
 		path.moveTo(ship.x, ship.y);
 		int count = frame;
 		for (int i = 0; i < PROJECT_TIME/LD34.dt && !l.dead && !l.ship.hasLanded() && !l.win; i++) {
-			l.physics(true);
+			l.physics();
 			if (count<3 || l.teleported) path.moveTo(l.ship.x, l.ship.y);
 			else path.lineTo(l.ship.x, l.ship.y);
 			count++;
@@ -143,7 +167,7 @@ public class Level {
 		bodies.add(b);
 	}
 	
-	public Level clone() {
+	public Level makeGhost() {
 		Level l = new Level();
 		Body b, bc;
 		for (int i = 0; i < bodies.size(); i++) {
@@ -165,6 +189,7 @@ public class Level {
 			l.ship.launch(getLaunchSpeed());
 			l.ship.physics();
 		}
+		l.ghostMode = true;
 		return l;
 	}
 	

@@ -7,8 +7,10 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 
-public class InputAdapter implements MouseListener, MouseMotionListener, KeyListener, ComponentListener {
+public class InputAdapter implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener, ComponentListener {
 	public void componentHidden(ComponentEvent e) {}
 	public void componentMoved(ComponentEvent e) {}
 	public void componentResized(ComponentEvent e) {}
@@ -23,4 +25,5 @@ public class InputAdapter implements MouseListener, MouseMotionListener, KeyList
 	public void mouseExited(MouseEvent e) {}
 	public void mousePressed(MouseEvent e) {}
 	public void mouseReleased(MouseEvent e) {}
+	public void mouseWheelMoved(MouseWheelEvent e) {}
 }
