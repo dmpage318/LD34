@@ -4,13 +4,13 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.awt.geom.Point2D;
 import java.awt.image.VolatileImage;
-
+import java.awt.geom.*;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -19,27 +19,30 @@ public class LD34 extends InputAdapter {
 	public static String GAME_NAME = "LD34";
 	public static JPanel panel;
 	public JFrame frame;
-	public Thread graphics, physics;
+	public Thread graphics, physics, animate;
 	public static long GRAPHICS_DELAY = 16;
 	public static long PHYSICS_DELAY = 10;
+	public static long ANIM_DELAY = 20;
 	int fps;
-	public static long graphicsTime, physicsTime;
+	public static long graphicsTime, physicsTime, animTime;
 	public VolatileImage img;
 	public static final int GAME = 0;
 	public static final int EDITOR = -1;
 	public static final int ENDGAME = 1;
+	public static final int MENU=2;
 //	public static int gameState = GAME;
 	public static int gameState = EDITOR;
-	public static double dt = PHYSICS_DELAY / 1000d;
+	public static double dt = PHYSICS_DELAY/ 1000d;
 	public Level level;
 	public static int assumedWidth = 1920;
 	public static int assumedHeight = 1080;
 	public static double gscale;
+	public static Menu menu;
 	public LevelEditor edit;
 	
 	public static void main(String[] args) {
 		theLD = new LD34();
-		theLD.start();
+		theLD.start();		
 	}
 	
 	public void start() {
@@ -77,7 +80,12 @@ public class LD34 extends InputAdapter {
 				long start;
 				while (true) {
 					start = System.currentTimeMillis();
-					physics();
+					try {
+						physics();
+					} catch (Exception e) {
+						System.out.println("PHYSICS ERROR!");
+						e.printStackTrace();
+					}
 					physicsTime = System.currentTimeMillis()-start;
 					try {
 						Thread.sleep(Math.max(0, PHYSICS_DELAY-physicsTime));
@@ -87,16 +95,49 @@ public class LD34 extends InputAdapter {
 				}
 			}
 		};
+		animate = new Thread("Animation") {
+			public void run() {
+				long start;
+				while (true) {
+					start = System.currentTimeMillis();
+					try {
+						animate();
+					} catch (Exception e) {
+						System.out.println("ANIMATION ERROR!");
+						e.printStackTrace();
+					}
+					animTime = System.currentTimeMillis()-start;
+					try {
+						Thread.sleep(Math.max(0, ANIM_DELAY-animTime));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		};
 		
 		//TODO actual starting game stuff
+		gameState=MENU;
+		menu=new Menu();
+		
 		gameState = GAME;
-		loadLevel("take 1");
+//		loadLevel("take 1");
+		loadLevel("defaultMove");
 //		makeLevel();
-//		Loader.saveLevel(level, "default");
-//		launchEditor();
+		Path2D.Double path=new Path2D.Double(new Line2D.Double(-600,0,200,0));;
+//		level.bodies.get(1).path=new Path2D.Double(new Rectangle2D.Double(-800,-400,400,400));//new Ellipse2D.Double(-800,-400,400,400));
+//		path.append(new Line2D.Double(200,0,-200,0), true);
+//		level.bodies.get(0).path=path;
+//		level.bodies.get(1).fixed=false;
+//		Loader.saveLevel(level, "defaultMoveSqaure");
+		launchEditor();
+		
+//		gameState=MENU;
+//		menu=new Menu();
 		
 		graphics.start();
 		physics.start();
+		animate.start();
 	}
 	
 	public void makeGUI() {
@@ -116,23 +157,35 @@ public class LD34 extends InputAdapter {
 		frame.setFocusable(true);
 	}
 	
+	public void animate() {
+		if (gameState==GAME) {
+			level.animate();
+		} else if (gameState==EDITOR) {
+			edit.level.animate();
+		}
+	}
+	
 	public void graphics() {
 		if (img==null) img = panel.createVolatileImage(panel.getWidth(), panel.getHeight());
 		Graphics2D g = (Graphics2D) img.getGraphics();
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, panel.getWidth(), panel.getHeight());
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+		g.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
 		
 		switch (gameState) {
 		case GAME: gameGraphics(g); break;
 		case EDITOR: edit.paint(g); break;
 		case ENDGAME: endGraphics(g); break;
+		case MENU: menuGraphics(g);
 		}
 		
 		g.setColor(Color.red);
 		g.drawString("Physics Time: "+physicsTime, 10, 20);
 		g.drawString("Graphics Time: "+graphicsTime, 10, 40);
-		g.drawString("FPS: "+fps, 10, 60);
+		g.drawString("Animation Time: "+animTime, 10, 60);
+		g.drawString("FPS: "+fps, 10, 80);
 		
 		g.dispose();
 		g = (Graphics2D) panel.getGraphics();
@@ -140,6 +193,17 @@ public class LD34 extends InputAdapter {
 		g.dispose();
 	}
 	
+	private void menuGraphics(Graphics2D g) {
+		g.translate(panel.getWidth()/2, panel.getHeight()/2);
+		gscale = Math.min((double)panel.getWidth()/assumedWidth, (double)panel.getHeight()/assumedHeight);
+		g.scale(gscale, gscale);
+		
+		menu.paint(g);
+		
+		g.scale(1/gscale, 1/gscale);
+		g.translate(-panel.getWidth()/2, -panel.getHeight()/2);
+	}
+
 	public void gameGraphics(Graphics2D g) {
 		gameGraphics(level,g);
 	}
@@ -152,6 +216,8 @@ public class LD34 extends InputAdapter {
 		
 		g.scale(1/gscale, 1/gscale);
 		g.translate(-panel.getWidth()/2, -panel.getHeight()/2);
+		
+		l.paintHUD(g);
 	}
 	public void endGraphics(Graphics2D g) {
 		g.setColor(Color.white);
@@ -160,15 +226,17 @@ public class LD34 extends InputAdapter {
 	public void physics() {
 		if (gameState==GAME) level.physics();
 		if (gameState==EDITOR) edit.physics();
+		if (gameState==MENU)menu.physics();
 	}
 	
 	public void makeLevel() {
-		//TODO load level from file
+		//TODO lo\ad level from file
 		level = new Level();
 		level.ship.x = 200;
 		level.ship.vy = /*680;*/511.9;
 		level.bodies.add(new Planet(0, 0, 100, .5));
 		level.bodies.add(new Planet(-600, 0, 100, -.5));
+		level.bodies.add(new Star(-100, 400, 200));
 		level.ship.vy = 200;
 		Portal a = new Portal(70, 220, 0);
 		Portal b = new Portal(330, -200, 0);

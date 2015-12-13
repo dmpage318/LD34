@@ -7,10 +7,11 @@ public class Portal extends Body {
 	Portal linked;
 	public static Color[] cols=new Color[]{Color.orange,Color.magenta,Color.blue,Color.pink,Color.cyan,Color.yellow};
 	public double color;
+	public Portal(){
+		this(0,0);
+	}
 	public Portal(double x, double y,double color) {
-		this.x = x;
-		this.y = y;
-		hitRadius = 50;
+		super(x,y,50);
 		localGravRadius = 00;
 		this.color=color;
 	}

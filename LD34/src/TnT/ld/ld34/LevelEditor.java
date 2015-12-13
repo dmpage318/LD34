@@ -264,7 +264,7 @@ public class LevelEditor{
 			if(rad<Body.MIN_RAD||rad>Body.MAX_RAD)return;//you aint allowed to be too big o too small
 			boolean b=true;
 			Body check=active.clone();
-			check.hitRadius=rad;
+			check.setRadius(rad);
 			for(int i=0;i<level.bodies.size()&&b;i++){
 				if(level.bodies.get(i)!=active){
 					//we use a boolean similar to the above, but substituting to check for the radius primarily instead of the location
@@ -273,7 +273,7 @@ public class LevelEditor{
 				}
 			}
 			if(b){
-				active.hitRadius=rad;
+				active.setRadius(rad);
 			}
 		}
 	}

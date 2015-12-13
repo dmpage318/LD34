@@ -4,12 +4,12 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 
 public class BlackHole extends Body {
-
+	public BlackHole(){
+		this(0,0);
+	}
 	public BlackHole(double x, double y) {
-		this.x = x;
-		this.y = y;
-		hitRadius = 30;
-		mass = 10;
+		super(x,y,30);
+		mass = 30;
 	}
 	
 	public void paint(Graphics2D g) {

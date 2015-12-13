@@ -1,5 +1,6 @@
 package TnT.ld.ld34;
 
+import java.awt.geom.Path2D;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -20,28 +21,14 @@ public class Loader {
 			pw.println(level.exit.x+","+level.exit.y);
 			pw.println(level.next);
 			ArrayList<Portal> hold=new ArrayList<Portal>();
+			String c=",";
 			for(Body b:level.bodies){
-				if(b instanceof Planet){
-					pw.println("PLANET:"+b.x+","+b.y+","+b.hitRadius+","+b.omega+","+(((Planet)b).fixed?"1":"0"));
-					if(!((Planet)b).fixed){
-						//woooohooo save dem paths!!!!!!!
-						//TODO PATHS
-					}
-				}
+				if(hold.contains(b))continue;
+				b.save(pw);
 				if(b instanceof Portal){
-					if(hold.contains(b))continue;
-					Portal l=((Portal)b).linked;
-					pw.println("PORTAL:"+b.x+","+b.y+","+l.x+","+l.y);
-					hold.add(l);
-					hold.add((Portal)b);
+					((Portal)b).linked.save(pw);
+					hold.add(((Portal) b).linked);
 				}
-				if(b instanceof BlackHole){
-					pw.println("BH:"+b.x+","+b.y);
-				}
-				if(b instanceof Star){
-					pw.println("STAR:"+b.x+","+b.y+","+b.hitRadius);
-				}
-				//TODO HELP
 			}
 			pw.flush();
 			pw.close();
@@ -56,7 +43,6 @@ public class Loader {
 		Scanner scan;
 		try{
 			scan=new Scanner(Loader.class.getResource(name+EXT).openStream());
-//			File f=new File(Loader.class.getResource(name+EXT));
 		}catch(Exception e){
 			System.out.println("THIS FILE AINT IN ECLIPSE!!!!!");
 			try {
@@ -78,10 +64,8 @@ public class Loader {
 		d=scan.nextLine().split(",");
 		l.exit.x=Double.parseDouble(d[0]);
 		l.exit.y=Double.parseDouble(d[1]);
-//		String str=scan.nextLine();
-//		str=scan.nextLine();//maybe
-		int portNum = 0;
 		l.next=scan.nextLine();
+		Portal p1=null;
 		while(scan.hasNextLine()){
 			String temp=scan.nextLine();
 			String[] dat=temp.split("[:,]");
@@ -89,33 +73,47 @@ public class Loader {
 			for(int i=0;i<doub.length;i++){
 				doub[i]=Double.parseDouble(dat[i+1]);
 			}
-			System.out.println(dat[0]);
-			if(dat[0].equals("PLANET")){
-				Planet p=new Planet(doub[0],doub[1],doub[2],doub[3]);
-				p.fixed=doub[4]==1;
-				if(!p.fixed){
-					//TODO path
+			try {
+				Body b=(Body) Class.forName(Loader.class.getPackage().getName()+"."+dat[0]).newInstance();
+				b.init(doub);
+				l.bodies.add(b);
+				if(b instanceof Portal){
+					if(p1==null)p1=(Portal) b;
+					else{
+						if(!(b instanceof Portal))throw new Exception("Corrupt File!");
+						p1.link((Portal) b);
+						p1=null;
+					}
 				}
-				l.bodies.add(p);
-			}else if(dat[0].equals("PORTAL")){
-				Portal p1=new Portal(doub[0],doub[1],portNum);
-				Portal p2=new Portal(doub[2],doub[3],portNum);
-				p1.link(p2);
-				l.bodies.add(p1);
-				l.bodies.add(p2);
-				portNum++;
-			}else if(dat[0].equals("BH")){
-				l.bodies.add(new BlackHole(doub[0],doub[1]));
-			}else if(dat[0].equals("STAR")){
-				l.bodies.add(new Star(doub[0],doub[1],doub[2]));
-			}else if(dat[0].equals("HELP")){
-				
-			}else{
-				//:(
+				if(!b.fixed){
+					String line=scan.nextLine();
+					Path2D.Double path=new Path2D.Double();
+					ArrayList<Double> pa=new ArrayList<Double>();
+					ArrayList<Class> cl=new ArrayList<Class>();
+					for(int i=0;i<6;i++)cl.add(double.class);
+					Class c=path.getClass();					
+					Class[] ca;					
+					Class dc=double.class;
+					while(!line.equals("END")){
+						String[] param=line.split("[:,]");
+						doub=new double[param.length-1];
+						pa.clear();
+						for(int i=0;i<doub.length;i++){
+							pa.add(Double.parseDouble(param[i+1]));
+						}
+						ca=new Class[doub.length];
+						System.out.println(param[0]+","+doub.length);
+						cl.subList(0, doub.length).toArray(ca);
+						c.getMethod(param[0],ca).invoke(path, pa.toArray());		
+						line=scan.nextLine();
+					}
+					b.path=path;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
-		l.setStart(l.bodies.get(land));
-		
+		l.setStart(l.bodies.get(land));		
 		scan.close();
 		return l;
 	}
