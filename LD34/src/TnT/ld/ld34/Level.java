@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.Stroke;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
+import java.util.jar.Attributes.Name;
 
 public class Level {
 	public static int SIZE = 4000; //radius of the intergalactic barrier
@@ -23,8 +24,8 @@ public class Level {
 	public Body startPlanet;
 	public boolean ghostMode;
 	public boolean editMode = false;
-	public boolean lastLevel = false;
 	
+	public int endCount;
 	public void paint(Graphics2D g) {
 		double tx = 0, ty = 0;
 		double xbound = (LD34.getWidth()/2-75)/LD34.gscale;
@@ -34,6 +35,11 @@ public class Level {
 		if (ship.y>ybound) ty = ybound-ship.y;
 		if (ship.y<-ybound) ty = -ybound-ship.y;
 		if (!editMode) g.translate(tx, ty);
+		
+		if (win) {
+			endCount--;
+			if (endCount==0) LD34.loadLevel(next);
+		}
 		
 		drawBackground(g);
 		
@@ -67,11 +73,15 @@ public class Level {
 	}
 	
 	public void setStart(Body b) {
+		ship.ix = ship.x;
+		ship.iy = ship.y;
 		ship.land(b);
 		startPlanet = b;
 	}
 	
 	public void reset() {
+		ship.x = ship.ix;
+		ship.y = ship.iy;
 		ship.land(startPlanet);
 		dead = false;
 		win = false;
@@ -87,7 +97,7 @@ public class Level {
 			b.physics();
 			if (!editMode && !win && !dead && !ship.hasLanded()) b.doGravity(ship);
 			if (!editMode && !win && !dead && b.collides(ship)) {
-				if (b.canKill()) dead = true;
+				if (b.canKill()) die();
 				else if (b.canLand() && !ship.hasLanded()) ship.land(b);
 				else if (b instanceof Portal && b!=ignore){
 					((Portal)b).teleport(ship);
@@ -114,11 +124,11 @@ public class Level {
 			ship.physics();
 			if (!editMode && !ship.hasLanded()) {
 				exit.doGravity(ship);
-				if (exit.collides(ship)) win = true;
+				if (exit.collides(ship)) win();
 			}
 		}
 		if (win) {
-			if (lastLevel && !ship.hasLanded()) ship.land(exit);
+			if (next.equals("") && !ship.hasLanded()) ship.land(exit);
 			else ship.approachExit(exit);
 		}
 		if (!editMode && Math.hypot(ship.x, ship.y) > SIZE/2-Ship.hitRadius) die();
@@ -133,8 +143,14 @@ public class Level {
 	}
 	
 	public void die() {
+		System.out.println("dead");
 		dead = true;
 		if (!ghostMode) reset();
+	}
+	
+	public void win() {
+		win = true;
+		endCount = 100;
 	}
 	
 	public double getLaunchSpeed() {

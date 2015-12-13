@@ -9,6 +9,7 @@ public class BlackHole extends Body {
 		this.x = x;
 		this.y = y;
 		hitRadius = 30;
+		mass = 10;
 	}
 	
 	public void paint(Graphics2D g) {

@@ -16,6 +16,7 @@ public class Loader {
 			f.createNewFile();
 			PrintWriter pw=new PrintWriter(f);
 			pw.println(level.bodies.indexOf(level.ship.landed));
+			pw.println(level.ship.x+","+level.ship.y);
 			pw.println(level.exit.x+","+level.exit.y);
 			pw.println(level.next);
 			ArrayList<Portal> hold=new ArrayList<Portal>();
@@ -72,10 +73,14 @@ public class Loader {
 		int land=Integer.parseInt(scan.nextLine());
 		l.ship=s;
 		String[] d=scan.nextLine().split(",");
+		l.ship.x=Double.parseDouble(d[0]);
+		l.ship.y=Double.parseDouble(d[1]);
+		d=scan.nextLine().split(",");
 		l.exit.x=Double.parseDouble(d[0]);
 		l.exit.y=Double.parseDouble(d[1]);
 //		String str=scan.nextLine();
 //		str=scan.nextLine();//maybe
+		int portNum = 0;
 		l.next=scan.nextLine();
 		while(scan.hasNextLine()){
 			String temp=scan.nextLine();
@@ -93,11 +98,12 @@ public class Loader {
 				}
 				l.bodies.add(p);
 			}else if(dat[0].equals("PORTAL")){
-				Portal p1=new Portal(doub[0],doub[1]);
-				Portal p2=new Portal(doub[2],doub[3]);
+				Portal p1=new Portal(doub[0],doub[1],portNum);
+				Portal p2=new Portal(doub[2],doub[3],portNum);
 				p1.link(p2);
 				l.bodies.add(p1);
 				l.bodies.add(p2);
+				portNum++;
 			}else if(dat[0].equals("BH")){
 				l.bodies.add(new BlackHole(doub[0],doub[1]));
 			}else if(dat[0].equals("STAR")){

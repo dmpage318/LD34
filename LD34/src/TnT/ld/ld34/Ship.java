@@ -10,6 +10,7 @@ public class Ship {
 	public double landAngle;
 	public double x, y; //coordinates of center
 	public double vx, vy;
+	public double ix, iy;
 	
 	public boolean hasLanded() {
 		return landed != null;

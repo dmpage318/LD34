@@ -6,12 +6,16 @@ public class Planet extends Body {
 	public Path2D.Double path;
 	public boolean fixed=true;
 	public static final double RADIUS=100,OMEGA=.5;
+	public static final double MIN_OMEGA=.05,MAX_OMEGA=5;//min isnt used
 	public Planet(double x, double y, double radius, double omega) {
 		this.x = x;
 		this.y = y;
 		this.hitRadius = radius;
 		this.omega = omega;
-		mass = 10;
+	}
+	public void doGravity(Ship s) {
+		mass = hitRadius/10;
+		super.doGravity(s);
 	}
 	public Planet(double x, double y){
 		this(x,y,RADIUS,OMEGA);

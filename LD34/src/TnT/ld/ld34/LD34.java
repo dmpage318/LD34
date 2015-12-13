@@ -27,6 +27,7 @@ public class LD34 extends InputAdapter {
 	public VolatileImage img;
 	public static final int GAME = 0;
 	public static final int EDITOR = -1;
+	public static final int ENDGAME = 1;
 //	public static int gameState = GAME;
 	public static int gameState = EDITOR;
 	public static double dt = PHYSICS_DELAY / 1000d;
@@ -89,10 +90,10 @@ public class LD34 extends InputAdapter {
 		
 		//TODO actual starting game stuff
 		gameState = GAME;
-//		loadLevel("default");
+		loadLevel("take 1");
 //		makeLevel();
 //		Loader.saveLevel(level, "default");
-		launchEditor();
+//		launchEditor();
 		
 		graphics.start();
 		physics.start();
@@ -125,6 +126,7 @@ public class LD34 extends InputAdapter {
 		switch (gameState) {
 		case GAME: gameGraphics(g); break;
 		case EDITOR: edit.paint(g); break;
+		case ENDGAME: endGraphics(g); break;
 		}
 		
 		g.setColor(Color.red);
@@ -151,6 +153,10 @@ public class LD34 extends InputAdapter {
 		g.scale(1/gscale, 1/gscale);
 		g.translate(-panel.getWidth()/2, -panel.getHeight()/2);
 	}
+	public void endGraphics(Graphics2D g) {
+		g.setColor(Color.white);
+		g.drawString("YAY YOU WIN", 200, 200);
+	}
 	public void physics() {
 		if (gameState==GAME) level.physics();
 		if (gameState==EDITOR) edit.physics();
@@ -164,8 +170,8 @@ public class LD34 extends InputAdapter {
 		level.bodies.add(new Planet(0, 0, 100, .5));
 		level.bodies.add(new Planet(-600, 0, 100, -.5));
 		level.ship.vy = 200;
-		Portal a = new Portal(70, 220);
-		Portal b = new Portal(330, -200);
+		Portal a = new Portal(70, 220, 0);
+		Portal b = new Portal(330, -200, 0);
 		a.link(b);
 		level.addBody(a);
 		level.addBody(b);
@@ -178,8 +184,12 @@ public class LD34 extends InputAdapter {
 		gameState = EDITOR;
 	}
 	
-	public void loadLevel(String name) {
-		level = Loader.loadLevel(name);
+	public static void loadLevel(String name) {
+		if (name.equals("")) {
+			gameState = ENDGAME;
+			return;
+		}
+		LD34.theLD.level = Loader.loadLevel(name);
 		gameState = GAME;
 	}
 	
