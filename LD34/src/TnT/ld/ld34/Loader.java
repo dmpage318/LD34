@@ -40,6 +40,7 @@ public class Loader {
 		}
 	}
 	public static Level loadLevel(String name){
+		Help.clear();
 		Scanner scan;
 		try{
 			scan=new Scanner(Loader.class.getResource(name+EXT).openStream());

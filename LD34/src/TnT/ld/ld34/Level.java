@@ -33,7 +33,11 @@ public class Level {
 	public boolean editMode = false;
 	ArrayList<Animation> anims = new ArrayList<Animation>();
 	ArrayList<BGStar> bgstars=new ArrayList<BGStar>();
+	private boolean firstLaunch=true;
+	private int lands=0;
 	public int endCount;
+	//	public boolean eath=false;
+	//	public boolean firstLaunch=false;
 	public Level(){
 		for(int i=0;i<SIZE;i++){
 			while(Math.random()<STAR_FREQ){
@@ -44,6 +48,7 @@ public class Level {
 	}
 	double tx, ty;
 	double dtx, dty;
+	double etx, ety;
 	boolean returning;
 	public void paint(Graphics2D g) {
 		tx = 0;
@@ -65,22 +70,59 @@ public class Level {
 				ty = dty;
 			}
 		}
-		if (!editMode) g.translate(tx, ty);
-		
+		double scale = 1;
+		double shipFade = 1;
 		if (win) {
 			endCount--;
-			if (endCount==0) LD34.loadLevel(next);
+			if (endCount<END_TIME-EXIT_TIME-WAIT_TIME) {
+				double prog = Math.min(1, (double)(END_TIME-endCount-EXIT_TIME-WAIT_TIME)/ZOOM_TIME);
+				scale = Math.pow(30, Math.pow(prog, 2));
+				tx = -exit.x*(1-1/scale);
+				ty = -exit.y*(1-1/scale);
+				tx += (etx + prog*(-exit.x-etx))/scale;
+				ty += (ety + prog*(-exit.y-ety))/scale;
+				g.scale(scale, scale);
+			}
+			shipFade = Math.max(0, (double)(endCount-END_TIME+EXIT_TIME)/EXIT_TIME);
+			if (endCount==0) LD34.loadLevel(next, true);
 		}
-		
-		drawBackground(g);
+		if (zintro) {
+			introCount++;
+			double prog = Math.min(1, (double)(ZOOM_TIME-introCount)/ZOOM_TIME);
+			scale = Math.pow(30, Math.pow(prog, 2));
+			tx = -exit.x*(1-1/scale);
+			ty = -exit.y*(1-1/scale);
+			tx += (etx + prog*(-exit.x-etx))/scale;
+			ty += (ety + prog*(-exit.y-ety))/scale;
+			g.scale(scale, scale);
+			if (introCount==ZOOM_TIME) zintro = false;
+		}
+
+		double frac = .35;
+		if (!editMode) g.translate(tx*frac, ty*frac);
+
+
+
+
+		drawBGStars(g);
+
+		if (!editMode) g.translate(tx*(1-frac), ty*(1-frac));
+
+
+		Stroke s = g.getStroke();
+		g.setStroke(new BasicStroke(10));
+		g.setColor(Color.red);
+		g.drawOval(-SIZE/2, -SIZE/2, SIZE, SIZE);
+		g.setStroke(s);
+
 		for (int i = 0; i < bodies.size(); i++) {
 			Body b = bodies.get(i);
 			if(!b.fixed){
 				g.setColor(pathCol);
-				Stroke s=g.getStroke();
+				s=g.getStroke();
 				g.setStroke(dashed);
 				g.draw(b.path);
-//				g.fill(b.path);
+				//				g.fill(b.path);
 				g.setStroke(s);
 			}
 		}
@@ -89,13 +131,15 @@ public class Level {
 			b.paint(g);
 		}
 		exit.paint(g);
-		if (!dead) ship.paint(g);
+		if (!dead) ship.paint(g, shipFade);
+
+		drawShadows(g);
 		
 		for (int i = 0; i < anims.size(); i++) {
 			anims.get(i).paint(g);
 		}
-		
-		Stroke s = g.getStroke();
+
+		s = g.getStroke();
 		g.setStroke(new BasicStroke(2));
 		g.setColor(Color.white);
 		ArrayList<Path2D.Double> paths = this.paths;
@@ -104,10 +148,9 @@ public class Level {
 			g.setColor(new Color(255, 255, 255, alpha));
 			g.draw(paths.get(i));
 		}
-		drawShadows(g);
 		g.setStroke(s);
-		
 		if (!editMode) g.translate(-tx, -ty);
+		if (win) g.scale(1/scale, 1/scale);
 	}
 	public void paintHUD(Graphics2D g) {
 		if (editMode) return;
@@ -124,17 +167,17 @@ public class Level {
 	}
 	final static float dash1[] = {10.0f};
 	final static BasicStroke dashed =
-	        new BasicStroke(1.0f,
-	                        BasicStroke.CAP_BUTT,
-	                        BasicStroke.JOIN_MITER,
-	                        10.0f, dash1, 0.0f);
+			new BasicStroke(1.0f,
+					BasicStroke.CAP_BUTT,
+					BasicStroke.JOIN_MITER,
+					10.0f, dash1, 0.0f);
 	Color pathCol=new Color(0xA17FFF);
-//	Color pathCol=Color.magenta;
+	//	Color pathCol=Color.magenta;
 	static final double LIGHT_RADIUS=.1;
 	Polygon shadow;
 	public void drawShadows(Graphics2D g){
 		Paint old=g.getPaint();
-		
+		boolean hasStar=false;
 		d:for(int i=0;i<bodies.size();i++){
 			if(!(bodies.get(i) instanceof Planet)){
 				continue d;//only planets get shadows
@@ -147,6 +190,7 @@ public class Level {
 				if(!(bodies.get(j)instanceof Star)){
 					continue dd;
 				}
+				hasStar=true;
 				Star s=(Star)bodies.get(j);
 				double dx=-(p.y-s.y);
 				double dy=p.x-s.x;
@@ -161,65 +205,79 @@ public class Level {
 				Area a=new Area(light);
 				shadow.subtract(a);
 				lights.add(a);
-//				g.setColor(new Color(1f,1f,1f,.75f));
-//				g.fill(light);
+				//				g.setColor(new Color(1f,1f,1f,.75f));
+				//				g.fill(light);
 			}
-//			full.subtract(shadow);
-			ArrayList<Area> newLights=new ArrayList<Area>();
-			for(int l1=0;l1<lights.size();l1++){
-				newLights.add((Area)lights.get(l1).clone());
-				newLights.get(l1).intersect(planet);
-			}
-			for(int l1=0;l1<lights.size();l1++){
-				for(int l2=0;l2<lights.size();l2++){
-					if(l1==l2)continue;
-					newLights.get(l1).subtract(lights.get(l2));
-//					newLights.add(l);
+			//			full.subtract(shadow);
+			if(hasStar){
+				ArrayList<Area> newLights=new ArrayList<Area>();
+				for(int l1=0;l1<lights.size();l1++){
+					newLights.add((Area)lights.get(l1).clone());
+					newLights.get(l1).intersect(planet);
+				}
+				for(int l1=0;l1<lights.size();l1++){
+					for(int l2=0;l2<lights.size();l2++){
+						if(l1==l2)continue;
+						newLights.get(l1).subtract(lights.get(l2));
+						//					newLights.add(l);
+					}
+				}
+				if(newLights.size()==0&&lights.size()>0){
+					newLights.add(lights.get(0));
+				}
+				g.setColor(new Color(0f,0f,0f,.25f));
+				for(int j=0;j<newLights.size();j++){
+					g.fill(newLights.get(j));
+					//				System.out.println("fill lights");
 				}
 			}
-			if(newLights.size()==0&&lights.size()>0){
-				newLights.add(lights.get(0));
-			}
-			g.setColor(new Color(0f,0f,0f,.75f));
+			g.setColor(new Color(0f,0f,0f,(hasStar?.75f:.5f)));
 			g.fill(shadow);
-			g.setColor(new Color(0f,0f,0f,.25f));
-			for(int j=0;j<newLights.size();j++){
-				g.fill(newLights.get(j));
-//				System.out.println("fill lights");
-			}
 		}
-		
+
 		g.setPaint(old);
 	}
-	public void drawBackground(Graphics2D g) {
-		Stroke s = g.getStroke();
-		g.setStroke(new BasicStroke(10));
-		g.setColor(Color.red);
-		g.drawOval(-SIZE/2, -SIZE/2, SIZE, SIZE);
-		g.setStroke(s);
+	public void drawBGStars(Graphics2D g) {
 		g.setColor(Color.white);
 		BGStar b=null;
-		for(int i=0;i<bgstars.size();i++){
-//			g.draw(bgstars.get(i));
-//			g.fill(bgstars.get(i));
-			b=bgstars.get(i);
-			g.fillOval((int)b.x-b.twinkle, (int)b.y-b.twinkle,(int)b.width+b.twinkle*2,(int)b.height+b.twinkle*2);
+		if(editMode){
+			for(int i=0;i<bgstars.size();i++){
+				//				g.draw(bgstars.get(i));
+				//				g.fill(bgstars.get(i));
+				b=bgstars.get(i);
+				g.fillOval((int)(b.x-b.twinkle), (int)(b.y-b.twinkle),(int)(b.width+b.twinkle*2),(int)(b.height+b.twinkle*2));
+			}
+		}else{
+			for(int i=0;i<bgstars.size();i++){
+				//			g.draw(bgstars.get(i));
+				//			g.fill(bgstars.get(i));
+				b=bgstars.get(i);
+				g.translate(b.speed*tx, b.speed*ty);
+				g.fillOval((int)(b.x-b.twinkle), (int)(b.y-b.twinkle),(int)(b.width+b.twinkle*2),(int)(b.height+b.twinkle*2));
+				g.translate(-b.speed*tx, -b.speed*ty);
+			}
 		}
 	}
-	
+
 	public void setStart(Body b) {
 		ship.ix = ship.x;
 		ship.iy = ship.y;
 		ship.land(b);
 		startPlanet = b;
 	}
-	
+
 	public void reset() {
 		ship.x = ship.ix;
 		ship.y = ship.iy;
 		ship.land(startPlanet);
 		dead = false;
 		win = false;
+	}
+	
+	public boolean zintro = false;
+	public int introCount = 0;
+	public void introZoom() {
+		zintro = true;
 	}
 
 	public double power = 1;
@@ -233,17 +291,26 @@ public class Level {
 				reset();
 			}
 		}
-		
+
 		teleported = false;
 		for (int i = 0; i < bodies.size(); i++) {
 			Body b = bodies.get(i);
 			b.physics();
 			if (!editMode && !win && !dead && !ship.hasLanded()) b.doGravity(ship);
 			if (!editMode && !win && !dead && b.collides(ship)) {
-				if (b.canKill()) die();
-				else if (b.canLand() && !ship.hasLanded()) ship.land(b);
+				if (b.canKill()){
+					die();
+					if(b instanceof Star)if(!ghostMode)Help.fireHelpEvent(Help.ON_SUN_DEATH);
+					if(b instanceof BlackHole)if(!ghostMode)Help.fireHelpEvent(Help.ON_BH_DEATH);
+				}
+				else if (b.canLand() && !ship.hasLanded()) {
+					ship.land(b);
+					lands++;
+					if(lands==1)if(!ghostMode)Help.fireHelpEvent(Help.ON_FIRST_LAND);
+				}
 				else if (b instanceof Portal && b!=ignore){
 					((Portal)b).teleport(ship);
+					if(!ghostMode)Help.fireHelpEvent(Help.ON_PORTAL_EXIT);
 					teleported = true;
 					ignore = ((Portal)b).linked;
 				}
@@ -262,8 +329,17 @@ public class Level {
 		}
 		if (!win && !dead) {
 			if (!editMode && !ghostMode && launch && !lastLaunch) {
-				if (ship.hasLanded()) ship.launch(getLaunchSpeed());
-				else die();
+				if (ship.hasLanded()){
+					ship.launch(getLaunchSpeed());
+					if(firstLaunch){
+						if(!ghostMode)Help.fireHelpEvent(Help.ON_FIRST_LAUNCH);
+						firstLaunch=false;
+					}
+					
+				}
+				else{
+					die();
+				}
 			}
 			ship.physics();
 			if (!editMode && !ship.hasLanded()) {
@@ -275,7 +351,10 @@ public class Level {
 			if (next.equals("") && !ship.hasLanded()) ship.land(exit);
 			else ship.approachExit(exit);
 		}
-		if (!dead && !win && !editMode && Math.hypot(ship.x, ship.y) > SIZE/2-Ship.hitRadius) die();
+		if (!dead && !win && !editMode && Math.hypot(ship.x, ship.y) > SIZE/2-Ship.hitRadius) {
+			die();
+			if(!ghostMode)Help.fireHelpEvent(Help.ON_BARRIER_DEATH);
+		}
 		if (ignore!=null && !ignore.collides(ship)) ignore = null;
 		if (!ship.hasLanded() && !dead && !win) {
 			frame++;
@@ -287,7 +366,8 @@ public class Level {
 	}
 	int deadCount;
 	public void die() {
-//		System.out.println("dead");
+		if(!ghostMode)Help.fireHelpEvent(Help.ON_DEATH);
+		//		System.out.println("dead");
 		if (tx!=0 || ty!=0) returning = true;
 		dtx = tx;
 		dty = ty;
@@ -295,16 +375,21 @@ public class Level {
 		deadCount = Explosion.TOTAL*2;
 		anims.add(new Explosion(ship));
 	}
-	
+	int END_TIME = 210;
+	int ZOOM_TIME = 75;
+	int EXIT_TIME = 100;
+	int WAIT_TIME = 10;
 	public void win() {
+		etx = tx;
+		ety = ty;
 		win = true;
-		endCount = 100;
+		endCount = END_TIME;
 	}
-	
+
 	public double getLaunchSpeed() {
 		return Math.pow(power, .2) * launchSpeed;
 	}
-	
+
 	ArrayList<Path2D.Double> paths = new ArrayList<Path2D.Double>();
 	public void plotCourse() {
 		Level l = makeGhost();
@@ -326,11 +411,11 @@ public class Level {
 		}
 		this.paths = paths;
 	}
-	
+
 	public void addBody(Body b) {
 		bodies.add(b);
 	}
-	
+
 	public Level makeGhost() {
 		Level l = new Level();
 		Body b, bc;
@@ -356,7 +441,7 @@ public class Level {
 		l.ghostMode = true;
 		return l;
 	}
-	
+
 	public void animate() {
 		Animation a;
 		for (int i = 0; i < anims.size(); i++) {
@@ -367,16 +452,20 @@ public class Level {
 				i--;
 			}
 		}
-		for(int i=0;i<bgstars.size();i++){
-			bgstars.get(i).tick();
-			if(bgstars.get(i).x+bgstars.get(i).width<-SIZE/2){
-				bgstars.remove(i);
-				i--;
-			}
-		}
-		while(Math.random()<STAR_FREQ){
-			bgstars.add(new BGStar(SIZE/2,(int)(Math.random()*SIZE)-SIZE/2));
-		}
+				for(int i=0;i<bgstars.size();i++){
+					bgstars.get(i).tick();
+		//			if(bgstars.get(i).x+bgstars.get(i).width<-SIZE/2){
+		//				bgstars.remove(i);
+//						i--;
+		//			}
+				}
+		//		while(Math.random()<STAR_FREQ){
+		//			bgstars.add(new BGStar(SIZE/2,(int)(Math.random()*SIZE)-SIZE/2));
+		//		}
 	}
-	
+
+	public void fireHelpEvent(int type){
+		//doesnt actually fire events	
+	}
+
 }

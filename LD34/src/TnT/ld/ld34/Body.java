@@ -18,7 +18,7 @@ public abstract class Body {
 	public double omega; //angular rate
 	public double mass;
 	public double localGravRadius;
-	public double localGravAccel = 50;
+	public double localGravAccel;
 	
 	public static double MIN_RAD=50;
 	public static double MAX_RAD=1000;

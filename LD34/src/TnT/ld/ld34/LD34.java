@@ -122,8 +122,13 @@ public class LD34 extends InputAdapter {
 		
 		gameState = GAME;
 //		loadLevel("take 1");
-		loadLevel("defaultMove");
+		loadLevel("defaultMove", false);
 //		makeLevel();
+		Help h=new Help(0,0,100,20);
+		h.message="DIE!";
+		h.type=Help.ON_DEATH;
+		h.duration=5000;
+		level.anims.add(h);
 		Path2D.Double path=new Path2D.Double(new Line2D.Double(-600,0,200,0));;
 //		level.bodies.get(1).path=new Path2D.Double(new Rectangle2D.Double(-800,-400,400,400));//new Ellipse2D.Double(-800,-400,400,400));
 //		path.append(new Line2D.Double(200,0,-200,0), true);
@@ -131,6 +136,9 @@ public class LD34 extends InputAdapter {
 //		level.bodies.get(1).fixed=false;
 //		Loader.saveLevel(level, "defaultMoveSqaure");
 		launchEditor();
+		
+		
+		
 		
 //		gameState=MENU;
 //		menu=new Menu();
@@ -236,7 +244,7 @@ public class LD34 extends InputAdapter {
 		level.ship.vy = /*680;*/511.9;
 		level.bodies.add(new Planet(0, 0, 100, .5));
 		level.bodies.add(new Planet(-600, 0, 100, -.5));
-		level.bodies.add(new Star(-100, 400, 200));
+//		level.bodies.add(new Star(-100, 400, 200));
 		level.ship.vy = 200;
 		Portal a = new Portal(70, 220, 0);
 		Portal b = new Portal(330, -200, 0);
@@ -252,12 +260,14 @@ public class LD34 extends InputAdapter {
 		gameState = EDITOR;
 	}
 	
-	public static void loadLevel(String name) {
+	public static void loadLevel(String name, boolean withZoom) {
 		if (name.equals("")) {
 			gameState = ENDGAME;
 			return;
 		}
-		LD34.theLD.level = Loader.loadLevel(name);
+		Level l = Loader.loadLevel(name);
+		if (withZoom) l.introZoom();
+		LD34.theLD.level = l;
 		gameState = GAME;
 	}
 	

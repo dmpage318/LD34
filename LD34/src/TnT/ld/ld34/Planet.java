@@ -8,13 +8,14 @@ import javax.imageio.ImageIO;
 
 public class Planet extends Body {
 	static String[] imNames = new String[] {
-			"planet1"
+			"planet1","planet4"
 	};
 	static BufferedImage[] images = new BufferedImage[imNames.length];
 	static {
 		for (int i = 0; i < images.length; i++) {
 			try {
 				images[i] = ImageIO.read(Planet.class.getResource(imNames[i]+".png"));
+				System.out.println(images[i].getWidth()+", "+images[i].getHeight());
 			} catch (Exception e) {
 				System.out.println("failed to load planet image: "+imNames[i]);
 				e.printStackTrace();

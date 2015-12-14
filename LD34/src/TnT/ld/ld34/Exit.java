@@ -10,6 +10,7 @@ public class Exit extends Body {
 		this.y = y;
 		hitRadius = 50;
 		localGravRadius = 100;
+		localGravAccel = 50;
 	}
 	
 	public void paint(Graphics2D g) {

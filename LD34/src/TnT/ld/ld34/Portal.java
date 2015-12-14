@@ -5,8 +5,9 @@ import java.awt.Graphics2D;
 
 public class Portal extends Body {
 	Portal linked;
-	public static Color[] cols=new Color[]{Color.orange,Color.magenta,Color.blue,Color.pink,Color.cyan,Color.yellow};
+	Color col;
 	public double color;
+	static int COLOR=0;
 	public Portal(){
 		this(0,0);
 	}
@@ -14,6 +15,12 @@ public class Portal extends Body {
 		super(x,y,50);
 		localGravRadius = 00;
 		this.color=color;
+		COLOR=(COLOR+30)%360;
+		if(COLOR==0){
+			COLOR=15;
+		}else if(COLOR==15){
+			COLOR=20;
+		}
 	}
 	public Portal(double x,double y){
 		this(x,y,0);
@@ -21,6 +28,9 @@ public class Portal extends Body {
 	public void link(Portal p) {
 		linked = p;
 		p.linked = this;
+		COLOR-=30;
+		p.col=new Color(Color.HSBtoRGB((float)COLOR/360f, 1f, 1f));
+		col=new Color(Color.HSBtoRGB((float)COLOR/360f, .75f, 1f));
 	}
 	
 	public void teleport(Ship s) {
@@ -30,10 +40,13 @@ public class Portal extends Body {
 	}
 	
 	public void paint(Graphics2D g) {
-		Color col=cols[((int)color)%cols.length];
+//		Color col=cols[((int)color)%cols.length];
 		if(color%1>0){
 			col=col.darker();
 		}
+//		if(color>cols.length){
+//			col=col.brighter().brighter();
+//		}
 		g.setColor(col);
 		g.fillOval((int)(x-hitRadius), (int)(y-hitRadius), (int)(2*hitRadius), (int)(2*hitRadius));
 		g.setColor(Color.yellow);

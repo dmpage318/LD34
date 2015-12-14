@@ -1,4 +1,4 @@
-package TnT.ld.ld34;
+ package TnT.ld.ld34;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -54,8 +54,8 @@ public class Ship {
 		}
 	}
 	
-	public void paint(Graphics2D g) {
-		g.setColor(Color.white);
-		g.fillOval((int)(x-hitRadius), (int)(y-hitRadius), (int)(2*hitRadius), (int)(2*hitRadius));
+	public void paint(Graphics2D g, double fade) {
+		g.setColor(new Color(255, 255, 255, (int)(255*fade)));
+		g.fillOval((int)(x-hitRadius*fade), (int)(y-hitRadius*fade), (int)(2*(hitRadius*fade)), (int)(2*(hitRadius*fade)));
 	}
 }

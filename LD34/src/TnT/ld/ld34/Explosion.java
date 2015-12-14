@@ -3,7 +3,7 @@ package TnT.ld.ld34;
 import java.awt.Color;
 import java.awt.Graphics2D;
 
-public class Explosion extends Animation {
+public class Explosion implements Animation {
 	double x, y;
 	static final int TOTAL = 50;
 	static final int GROW = 10;

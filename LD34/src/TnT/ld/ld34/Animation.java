@@ -2,10 +2,10 @@ package TnT.ld.ld34;
 
 import java.awt.Graphics2D;
 
-public abstract class Animation {
+public interface Animation {
 	
-	public abstract void tick();
-	public abstract boolean done();
-	public abstract void paint(Graphics2D g);
+	public void tick();
+	public boolean done();
+	public void paint(Graphics2D g);
 	
 }
